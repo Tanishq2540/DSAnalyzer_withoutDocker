@@ -1,0 +1,71 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Streamlit cache
+.streamlit/
+
+# Environment variables
+.env
+.env.*
+
+# VSCode settings
+.vscode/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# PyCharm
+.idea/
+
+# Log files
+*.log
+
+# Docker
+*.pid
+*.pid.lock
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Compiled shared objects
+*.so
+
+# mypy / coverage / pytest
+.mypy_cache/
+.coverage
+.tox/
+htmlcov/
+.pytest_cache/
+
+# Autogen/Agent-related generated files
+solution.py
+*.pyc.*
+*.pyc
+*_test.py
+
+# SQLite
+*.sqlite3
+
+# Ignore contents of temp folder, but keep the folder itself
+temp/*
+!temp/.gitkeep
+
+tempCodeRunnerFile.py

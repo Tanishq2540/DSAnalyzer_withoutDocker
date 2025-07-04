@@ -1,0 +1,6 @@
+MODEL = 'gpt-4o'
+TEXT_MENTION = 'STOP'
+WORK_DIR = 'temp'
+TIMEOUT = 120
+MAX_TURNS=15
+MODEL="llama3-70b-8192"
