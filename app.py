@@ -10,7 +10,7 @@ st.set_page_config(page_title="DSAlyzer", layout="centered")
 st.title("🧠 DSAlyzer - DSA Problem Solver")
 st.write("Welcome to AlgoGenie, your personal DSA problem solver! Ask any Data Structures and Algorithms (DSA) question below:")
 
-# Initialize session state
+
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 if "task_running" not in st.session_state:
@@ -18,7 +18,6 @@ if "task_running" not in st.session_state:
 
 task = st.text_input("📌 Enter your DSA problem or question:", value='Write a function to add two numbers')
 
-# Async DSA run
 async def run(team, docker, task):
     try:
         await start_docker_container(docker)
@@ -39,28 +38,34 @@ async def run(team, docker, task):
         await stop_docker_container(docker)
 
 
+# ✅ Define everything here
 if st.button("🚀 Run"):
-    st.session_state.chat_log = []
-    st.session_state.task_running = True
-    team, docker = get_dsa_team_and_docker()
+    if not st.session_state.get("task_running", False):
+        st.session_state.chat_log = []
+        st.session_state.task_running = True  # Set flag to block reruns
 
-    async def collect_messages():
-        async for msg in run(team, docker, task):
-            if isinstance(msg, str):
-                if msg.startswith("user"):
-                    with st.chat_message('user', avatar='👤'):
-                        st.markdown(msg)
-                elif msg.startswith('DSA_Problem_Solver_Agent'):
-                    with st.chat_message('assistant', avatar='🧑‍💻'):
-                        st.markdown(msg)
-                elif msg.startswith('CodeExecutorAgent'):
-                    with st.chat_message('assistant', avatar='🤖'):
-                        st.markdown(msg)
-                elif msg.startswith('Stop Reason:'):
-                    with st.chat_message('stopper', avatar='🚫'):
-                        st.markdown(msg)
+        team, docker = get_dsa_team_and_docker()
 
-    asyncio.run(collect_messages())
+        async def collect_messages():
+            async for msg in run(team, docker, task):
+                if isinstance(msg, str):
+                    if msg.startswith("user"):
+                        with st.chat_message('user', avatar='👤'):
+                            st.markdown(msg)
+                    elif msg.startswith('DSA_Problem_Solver_Agent'):
+                        with st.chat_message('assistant', avatar='🧑‍💻'):
+                            st.markdown(msg)
+                    elif msg.startswith('CodeExecutorAgent'):
+                        with st.chat_message('assistant', avatar='🤖'):
+                            st.markdown(msg)
+                    elif msg.startswith('Stop Reason:'):
+                        with st.chat_message('stopper', avatar='🚫'):
+                            st.markdown(msg)
+
+            st.session_state.task_running = False  # ✅ Reset after task completes
+
+        asyncio.run(collect_messages())
+
 
 for msg in st.session_state.chat_log:
     if msg.startswith("user"):
