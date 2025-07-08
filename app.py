@@ -10,22 +10,14 @@ st.set_page_config(page_title="DSAlyzer", layout="centered")
 st.title("🧠 DSAlyzer - DSA Problem Solver")
 st.write("Welcome to AlgoGenie, your personal DSA problem solver! Ask any Data Structures and Algorithms (DSA) question below:")
 
-# Initialize session state variables
+
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 if "task_running" not in st.session_state:
     st.session_state.task_running = False
-if "initialized" not in st.session_state:
-    # Only initialize once per session
-    team, docker = get_dsa_team_and_docker()
-    st.session_state.team = team
-    st.session_state.docker = docker
-    st.session_state.initialized = True
 
-# Text input for task
 task = st.text_input("📌 Enter your DSA problem or question:", value='Write a function to add two numbers')
 
-# Async task runner
 async def run(team, docker, task):
     try:
         await start_docker_container(docker)
@@ -45,14 +37,17 @@ async def run(team, docker, task):
     finally:
         await stop_docker_container(docker)
 
-# Handle submit
+
+# ✅ Define everything here
 if st.button("🚀 Run"):
-    if not st.session_state.task_running:
+    if not st.session_state.get("task_running", False):
         st.session_state.chat_log = []
-        st.session_state.task_running = True
+        st.session_state.task_running = True  # Set flag to block reruns
+
+        team, docker = get_dsa_team_and_docker()
 
         async def collect_messages():
-            async for msg in run(st.session_state.team, st.session_state.docker, task):
+            async for msg in run(team, docker, task):
                 if isinstance(msg, str):
                     if msg.startswith("user"):
                         with st.chat_message('user', avatar='👤'):
@@ -67,11 +62,11 @@ if st.button("🚀 Run"):
                         with st.chat_message('stopper', avatar='🚫'):
                             st.markdown(msg)
 
-            st.session_state.task_running = False  # Reset
+            st.session_state.task_running = False  # ✅ Reset after task completes
 
         asyncio.run(collect_messages())
 
-# Display chat history
+
 for msg in st.session_state.chat_log:
     if msg.startswith("user"):
         with st.chat_message('user', avatar='👤'):
@@ -86,7 +81,6 @@ for msg in st.session_state.chat_log:
         with st.chat_message('stopper', avatar='🚫'):
             st.markdown(msg)
 
-# Reset button
 st.markdown("---")
 if st.button("🔁 Reset", key="reset_btn"):
     st.session_state.chat_log = []
