@@ -1,88 +1,43 @@
-import streamlit as st
-from team import get_dsa_team_and_docker
-from config.docker_utils import start_docker_container, stop_docker_container
-from autogen_agentchat.messages import TextMessage
-from autogen_agentchat.base import TaskResult
 import asyncio
+import platform
 
-st.set_page_config(page_title="DSAlyzer", layout="centered")
+# ✅ Fix for Windows subprocess compatibility
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
+import streamlit as st
+from team import get_dsa_team
+from autogen_agentchat.base import TaskResult  
+
+# Streamlit app config
+st.set_page_config(page_title="DSAlyzer", page_icon="🧠")
 st.title("🧠 DSAlyzer - DSA Problem Solver")
-st.write("Welcome to AlgoGenie, your personal DSA problem solver! Ask any Data Structures and Algorithms (DSA) question below:")
+st.markdown("📌 **Enter your DSA problem or question:**")
 
+user_input = st.text_area("Write your question here 👇")
 
-if "chat_log" not in st.session_state:
-    st.session_state.chat_log = []
-if "task_running" not in st.session_state:
-    st.session_state.task_running = False
+if st.button("Submit") and user_input.strip() != "":
+    with st.spinner("Thinking... 🧠"):
 
-task = st.text_input("📌 Enter your DSA problem or question:", value='Write a function to add two numbers')
+        async def run_task(task):
+            team = get_dsa_team()
+            messages = []
 
-async def run(team, docker, task):
-    try:
-        await start_docker_container(docker)
-        async for message in team.run_stream(task=task):
-            if isinstance(message, TextMessage):
-                msg = f"{message.source} : {message.content}"
-                st.session_state.chat_log.append(msg)
-                yield msg
-            elif isinstance(message, TaskResult):
-                msg = f"Stop Reason: {message.stop_reason}"
-                st.session_state.chat_log.append(msg)
-                yield msg
-    except Exception as e:
-        err = f"Error: {e}"
-        st.session_state.chat_log.append(err)
-        yield err
-    finally:
-        await stop_docker_container(docker)
+            async for msg in team.run_stream(task=task):
+                if hasattr(msg, "source") and hasattr(msg, "content"):
+                    if msg.content is not None and str(msg.content).strip() != "undefined":
+                        messages.append(f"{msg.source}: {msg.content}")
+                elif isinstance(msg, TaskResult):
+                    messages.append(f"✅ Task completed. Stop Reason: {msg.stop_reason}")
+                else:
+                    messages.append(f"⚠️ Unrecognized message: {msg}")
 
+            return messages
 
-# ✅ Define everything here
-if st.button("🚀 Run"):
-    if not st.session_state.get("task_running", False):
-        st.session_state.chat_log = []
-        st.session_state.task_running = True  # Set flag to block reruns
-
-        team, docker = get_dsa_team_and_docker()
-
-        async def collect_messages():
-            async for msg in run(team, docker, task):
-                if isinstance(msg, str):
-                    if msg.startswith("user"):
-                        with st.chat_message('user', avatar='👤'):
-                            st.markdown(msg)
-                    elif msg.startswith('DSA_Problem_Solver_Agent'):
-                        with st.chat_message('assistant', avatar='🧑‍💻'):
-                            st.markdown(msg)
-                    elif msg.startswith('CodeExecutorAgent'):
-                        with st.chat_message('assistant', avatar='🤖'):
-                            st.markdown(msg)
-                    elif msg.startswith('Stop Reason:'):
-                        with st.chat_message('stopper', avatar='🚫'):
-                            st.markdown(msg)
-
-            st.session_state.task_running = False  # ✅ Reset after task completes
-
-        asyncio.run(collect_messages())
-
-
-for msg in st.session_state.chat_log:
-    if msg.startswith("user"):
-        with st.chat_message('user', avatar='👤'):
-            st.markdown(msg)
-    elif msg.startswith('DSA_Problem_Solver_Agent'):
-        with st.chat_message('assistant', avatar='🧑‍💻'):
-            st.markdown(msg)
-    elif msg.startswith('CodeExecutorAgent'):
-        with st.chat_message('assistant', avatar='🤖'):
-            st.markdown(msg)
-    elif msg.startswith('Stop Reason:'):
-        with st.chat_message('stopper', avatar='🚫'):
-            st.markdown(msg)
-
-st.markdown("---")
-if st.button("🔁 Reset", key="reset_btn"):
-    st.session_state.chat_log = []
-    st.session_state.task_running = False
-    st.rerun()
+        try:
+            output = asyncio.run(run_task(user_input))
+            for msg in output:
+                if msg and str(msg).strip().lower() != "undefined":
+                    st.markdown(f"```\n{msg}\n```")
+        except Exception as e:
+            st.error(f"❌ Error occurred:\n\n{e}")
